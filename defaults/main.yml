@@ -45,5 +45,37 @@ icx_my_name: "testswitch"
 icx_default_gw: 1.2.3.4
 icx_nameserver: 8.8.4.4
 icx_domain_name: example.org
+icx_timezone: "europe CEST"
+
 
 icx_is_l3_switch: True
+
+icx_l3_config:
+  - ip route 0.0.0.0/0 {{ icx_default_gw }} name default
+  - ip multicast disable-flooding
+  - clock timezone {{ icx_timezone }}
+  - no manager registrar
+  - manager disable
+
+icx_general_config:
+  - enable acl-per-port-per-vlan
+  - global-stp
+  - aaa authentication web-server default local
+  - aaa authentication enable default local
+  - aaa authentication enable implicit-user
+  - aaa authentication login default local
+  - aaa authentication login privilege-mode
+  - jumbo
+  - enable aaa console
+  - logging console
+  - no telnet server
+  - ip multicast active
+  - ip multicast leave-wait-time 4
+  - clock summer-time
+  - web-management https
+  - ip access-list standard default
+  # The old switches need this, because ansible's parmiko ssh client
+  # ignores .ssh/config and therefore will not work with their old ssh
+  # server using public keys
+  # - ip ssh password-authentication no
+  #

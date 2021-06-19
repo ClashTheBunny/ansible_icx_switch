@@ -9,6 +9,13 @@
       msg: Unexpected firmware revision on device!
 
   - name: Configure management interface
+    icx_config:
+      lines:
+        - vlan 1
+        - router-interface ve 1
+    when: icx_is_l3_switch
+
+  - name: Configure management interface
     icx_l3_interface:
       name: ve 1
       ipv4: "{{ icx_mgmt_ip }}"
@@ -28,36 +35,11 @@
 
   - name: General setup
     icx_config:
-      lines:
-        - enable acl-per-port-per-vlan
-        - global-stp
-        - aaa authentication web-server default local
-        - aaa authentication enable default local
-        - aaa authentication enable implicit-user
-        - aaa authentication login default local
-        - aaa authentication login privilege-mode
-        - jumbo
-        - enable aaa console
-        - logging console
-        - no telnet server
-        - ip multicast active
-        - ip multicast leave-wait-time 4
-        - clock summer-time
-        - web-management https
-        - ip access-list standard default
-        # The old switches need this, because ansible's parmiko ssh client
-        # ignores .ssh/config and therefore will not work with their old ssh
-        # server using public keys
-        # - ip ssh password-authentication no
-        #
+      lines: "{{ icx_general_config }}"
+
   - name: General setup (L3 specific)
     icx_config:
-      lines:
-        - ip route 0.0.0.0/0 {{ icx_default_gw }} name default
-        - ip multicast disable-flooding
-        - clock timezone europe CEST
-        - no manager registrar
-        - manager disable
+      lines: "{{ icx_l3_config }}"
     when: icx_is_l3_switch
 
   - name: Assemble vlan membership list
