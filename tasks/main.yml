@@ -3,6 +3,10 @@
     icx_facts:
       gather_subset: all
 
+  - name: Find lags already on switch
+    set_fact:
+      lag_port_status: "{{ ansible_net_config | lag_ports_status(icx_lags) }}"
+
   - name: Fail on invalid firmware release
     when: icx_expected_firmware != "" and icx_expected_firmware != ansible_net_version
     fail:
@@ -46,6 +50,15 @@
     set_fact:
       icx_vlan_membership: "{{ icx_portconfig|vlan_membership(icx_lags) }}"
 
+  - name: Render and print running config
+    debug:
+      msg: "{{ ansible_net_config.split('\n') }}"
+
+  - name: Render and print combined vlan/lag/interface config
+    debug:
+      msg: "{{ lookup('template', 'config.j2').split('\n') }}"
+
   - name: Render combined vlan/lag/interface config
     icx_config:
       src: "{{ lookup('template', 'config.j2') }}"
+      diff_against: "running"

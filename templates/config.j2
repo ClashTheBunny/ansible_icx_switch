@@ -1,28 +1,4 @@
-{% for item in icx_lags %}
-lag {{ item.name }} dynamic id {{ item.id }}
- ports {{ item.ports }}
- lacp-timeout short
 !
-{% endfor %}
-
-{% for item in icx_lags %}
-interface lag {{ item.id }}
- port-name "{{ item.name }}-port"
- loop-detection
- stp-protect
- broadcast limit 1000
- unknown-unicast limit 10000
-{% if item.type == 'trust' %}
- raguard trust
- stp-bpdu-guard
- dhcp snooping trust
-{% endif %}
-{% for item in item.extraconfig|default([]) %}
- {{ item }}
-{% endfor %}
-!
-{% endfor %}
-
 vlan 1 name DEFAULT-VLAN by port
  spanning-tree 802-1w
  webauth
@@ -48,11 +24,52 @@ vlan {{ item.id }} name {{ item.name}} by port
 !
 {% endfor %}
 
-{# ipv6 raguard policy client #}
-{# ipv6 raguard vlan 1 policy client #}
-{# {% for item in icx_vlans %} #}
-{# ipv6 raguard vlan {{ item.id }} policy client #}
-{# {% endfor %} #}
+{% for item in icx_lags %}
+{#
+{% for port in item.ports %}
+no interface ethernet {{ port }}
+!
+{% endfor %}
+#}
+{% for port in item.ports %}
+{% if port in lag_port_status[item.name]["ports_to_add"] %}
+interface ethernet {{ port }}
+ broadcast limit 1000
+ unknown-unicast limit
+ dual-mode
+{% if item.type == 'trust' %}
+ raguard trust
+ stp-bpdu-guard
+ dhcp snooping trust
+{% endif %}
+{% for item in item.extraconfig|default([]) %}
+ {{ item }}
+{% endfor %}
+!
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+{% for item in icx_lags %}
+lag {{ item.name }} dynamic id {{ item.id }}
+{% for port in lag_port_status[item.name]["ports_to_add"] %}
+ ports ethe {{ port }}
+{% endfor %}
+{% for port in lag_port_status[item.name]["ports_to_remove"] %}
+ no ports ethe {{ port }}
+{% endfor %}
+
+ primary-port {{ item.primary_port }}
+ lacp-timeout {{ item.timeout }}
+ deploy
+!
+{% endfor %}
+
+ipv6 raguard policy client
+ipv6 raguard vlan 1 policy client
+{% for item in icx_vlans %}
+ipv6 raguard vlan {{ item.id }} policy client
+{% endfor %}
 !
 
 {% if icx_snmp_enable %}
@@ -76,6 +93,12 @@ ntp
 interface ethernet {{ item.port }}
  port-name "{{ item.name }}"
  loop-detection
+{% if icx_is_l3_switch %}
+{% if 'link' not in item or item.link != "fibre" %}
+ eee
+{% endif %}
+{% else %}
+{% endif %}
  dual-mode
  unknown-unicast limit
  stp-protect
@@ -94,3 +117,5 @@ interface ethernet {{ item.port }}
 {% if not icx_is_l3_switch %}
 ip address {{ icx_mgmt_ip }} 255.255.255.0
 {% endif %}
+!
+end
