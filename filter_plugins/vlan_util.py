@@ -1,11 +1,97 @@
 import re
 
+split_ethernets = re.compile(r"ethe(?:rnet)? (?:([\d/]+)(?: to ([\d/]+))?)")
+
+def running_ports_status(on_device_config, section_name):
+    """Converts the interface and lag dicts to a vlan membership dict"""
+    section_current = {}
+
+
+    inside_section = False
+    section_identifier = ""
+    for line in on_device_config.split("\n"):
+        if line.startswith("!"):
+            inside_section = False
+            continue
+        if line.startswith(section_name):
+            inside_section = True
+            section_identifier = line.split(" ")[1]
+            section_current[section_identifier] = {}
+            continue
+        if inside_section:
+            if " ethe" in line:
+                prefix = line.strip().split(" ")[0]
+                if prefix not in section_current[section_identifier]:
+                    section_current[section_identifier][prefix] = []
+                ports = split_ethernets.findall(line)
+                for port_range in ports:
+                    port_list = expand_port_range(*port_range)
+                    section_current[section_identifier][prefix].extend(port_list)
+
+    return section_current
+
+def lag_ports_diff(current, config):
+    status = {}
+    print(current, config)
+    for section_identifer in [x["name"] for x in config]:
+        for prefix in current[section_identifer].keys():
+            print(prefix)
+            if section_identifer in current:
+                if prefix in current[section_identifer]:
+                    current_set = set(current[section_identifer][prefix])
+                else:
+                    current_set = set()
+            else:
+                current_set = set()
+
+            configured_set = set([x["ports"] for x in config if x["name"] == section_identifer][0])
+            ports_to_add = list(configured_set - current_set)
+            ports_to_remove = list(current_set - configured_set)
+            ports_actual = list(current_set & configured_set)
+            status[section_identifer] = {
+                "ports_to_add": ports_to_add,
+                "ports_to_remove": ports_to_remove,
+                "ports_actual": ports_actual,
+            }
+
+    return status
+
+def vlan_ports_diff(current, config):
+    status = {}
+    print(current, config)
+    for section_identifer in [str(x) for x in config.keys()]:
+        status[int(section_identifer)] = {}
+        for prefix in current[section_identifer].keys():
+            if section_identifer in current:
+                if prefix in current[section_identifer]:
+                    current_set = set(current[section_identifer][prefix])
+                else:
+                    current_set = set()
+            else:
+                current_set = set()
+
+            if prefix in config[int(section_identifer)]:
+                configured_set = set(config[int(section_identifer)][prefix])
+            else:
+                configured_set = set()
+            print(current_set,configured_set)
+            ports_to_add = list(configured_set - current_set)
+            ports_to_remove = list(current_set - configured_set)
+            ports_actual = list(current_set & configured_set)
+            status[int(section_identifer)][prefix] = {
+                "ports_to_add": ports_to_add,
+                "ports_to_remove": ports_to_remove,
+                "ports_actual": ports_actual,
+            }
+
+    return status
+
 def lag_ports_status(on_device_config, configuration_lags):
     """Converts the interface and lag dicts to a vlan membership dict"""
     lags_status = {}
     lags_current = {}
 
-    split_ethernets = re.compile("ethernet (?:([\d/]+)(?: to ([\d/]+))?)")
+    split_ethernets = re.compile(r"ethernet (?:([\d/]+)(?: to ([\d/]+))?)")
 
     insideLag = False
     lag_name = ""
@@ -89,8 +175,9 @@ def vlan_membership(interfaces, lags):
                     ensureVlan(vlan)
                     vlans[vlan]["untagged"].append(portPrefix + str(item[portName]))
 
-    addAllMembers(interfaces, "ethernet ", "port")
-    addAllLagMembers(lags, "ethernet ", "ports")
+    addAllMembers(interfaces, "", "port")
+    addAllLagMembers(lags, "", "ports")
+    print(vlans)
     return vlans
 
 
@@ -99,4 +186,7 @@ class FilterModule(object):
         return {
             "vlan_membership": vlan_membership,
             "lag_ports_status": lag_ports_status,
+            "running_ports_status": running_ports_status,
+            "vlan_ports_diff": vlan_ports_diff,
+            "lag_ports_diff": lag_ports_diff,
         }

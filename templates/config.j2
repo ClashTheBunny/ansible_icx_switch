@@ -13,12 +13,16 @@ vlan 1 name DEFAULT-VLAN by port
 
 {% for item in icx_vlans %}
 vlan {{ item.id }} name {{ item.name}} by port
-{% if icx_vlan_membership[item.id]['tagged'] != [] %}
- tagged {{ icx_vlan_membership[item.id]['tagged']|join(' ') }}
+{% for tag_type in ["tagged", "untagged"] %}
+{% if tag_type in vlan_port_diff[item.id] %}
+{% if vlan_port_diff[item.id][tag_type]['ports_to_add'] != [] %}
+ {{ tag_type }} ethernet {{ vlan_port_diff[item.id][tag_type]['ports_to_add']|join(' ethernet ') }}
 {% endif %}
-{% if icx_vlan_membership[item.id]['untagged'] != [] %}
- untagged {{ icx_vlan_membership[item.id]['untagged']|join(' ') }}
+{% if vlan_port_diff[item.id][tag_type]['ports_to_remove'] != [] %}
+ no {{ tag_type }} ethernet {{ vlan_port_diff[item.id][tag_type]['ports_to_remove']|join(' ethernet ') }}
 {% endif %}
+{% endif %}
+{% endfor %}
  spanning-tree 802-1w
  multicast fast-leave-v2
 !
@@ -32,11 +36,10 @@ no interface ethernet {{ port }}
 {% endfor %}
 #}
 {% for port in item.ports %}
-{% if port in lag_port_status[item.name]["ports_to_add"] %}
+{% if port in lag_port_diff[item.name]["ports_to_add"] %}
 interface ethernet {{ port }}
  broadcast limit 1000
  unknown-unicast limit
- dual-mode
 {% if item.type == 'trust' %}
  raguard trust
  stp-bpdu-guard
@@ -52,10 +55,10 @@ interface ethernet {{ port }}
 
 {% for item in icx_lags %}
 lag {{ item.name }} dynamic id {{ item.id }}
-{% for port in lag_port_status[item.name]["ports_to_add"] %}
+{% for port in lag_port_diff[item.name]["ports_to_add"] %}
  ports ethe {{ port }}
 {% endfor %}
-{% for port in lag_port_status[item.name]["ports_to_remove"] %}
+{% for port in lag_port_diff[item.name]["ports_to_remove"] %}
  no ports ethe {{ port }}
 {% endfor %}
 
@@ -99,7 +102,6 @@ interface ethernet {{ item.port }}
 {% endif %}
 {% else %}
 {% endif %}
- dual-mode
  unknown-unicast limit
  stp-protect
  broadcast limit 1000

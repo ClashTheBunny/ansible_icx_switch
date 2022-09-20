@@ -3,9 +3,25 @@
     icx_facts:
       gather_subset: all
 
+  - name: Assemble vlan membership list
+    set_fact:
+      icx_vlan_membership: "{{ icx_portconfig | vlan_membership(icx_lags) }}"
+
+  - name: Find vlans already on switch
+    set_fact:
+      vlan_port_status: "{{ ansible_net_config | running_ports_status('vlan') }}"
+
   - name: Find lags already on switch
     set_fact:
-      lag_port_status: "{{ ansible_net_config | lag_ports_status(icx_lags) }}"
+      lag_port_status: "{{ ansible_net_config | running_ports_status('lag') }}"
+
+  - name: Find lags already on switch
+    set_fact:
+      lag_port_diff: "{{ lag_port_status | lag_ports_diff(icx_lags) }}"
+
+  - name: Find vlans already on switch
+    set_fact:
+      vlan_port_diff: "{{ vlan_port_status | vlan_ports_diff(icx_vlan_membership) }}"
 
   - name: Fail on invalid firmware release
     when: icx_expected_firmware != "" and icx_expected_firmware != ansible_net_version
@@ -45,10 +61,6 @@
     icx_config:
       lines: "{{ icx_l3_config }}"
     when: icx_is_l3_switch
-
-  - name: Assemble vlan membership list
-    set_fact:
-      icx_vlan_membership: "{{ icx_portconfig|vlan_membership(icx_lags) }}"
 
   - name: Render and print running config
     debug:
