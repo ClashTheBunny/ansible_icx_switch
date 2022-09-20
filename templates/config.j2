@@ -36,7 +36,7 @@ no interface ethernet {{ port }}
 {% endfor %}
 #}
 {% for port in item.ports %}
-{% if port in lag_port_diff[item.name]["ports_to_add"] %}
+{% if port in lag_port_diff[item.name]["ports_to_add"] or port == item.primary_port %}
 interface ethernet {{ port }}
  broadcast limit 1000
  unknown-unicast limit

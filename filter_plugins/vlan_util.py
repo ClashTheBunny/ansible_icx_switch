@@ -34,6 +34,8 @@ def lag_ports_diff(current, config):
     status = {}
     print(current, config)
     for section_identifer in [x["name"] for x in config]:
+        if section_identifer not in current:
+            current[section_identifer] = {"tagged": [], "untagged": []}
         for prefix in current[section_identifer].keys():
             print(prefix)
             if section_identifer in current:
@@ -61,6 +63,8 @@ def vlan_ports_diff(current, config):
     print(current, config)
     for section_identifer in [str(x) for x in config.keys()]:
         status[int(section_identifer)] = {}
+        if section_identifer not in current:
+            current[section_identifer] = {"ports": []}
         for prefix in current[section_identifer].keys():
             if section_identifer in current:
                 if prefix in current[section_identifer]:
@@ -85,48 +89,6 @@ def vlan_ports_diff(current, config):
             }
 
     return status
-
-def lag_ports_status(on_device_config, configuration_lags):
-    """Converts the interface and lag dicts to a vlan membership dict"""
-    lags_status = {}
-    lags_current = {}
-
-    split_ethernets = re.compile(r"ethernet (?:([\d/]+)(?: to ([\d/]+))?)")
-
-    insideLag = False
-    lag_name = ""
-    for line in on_device_config.split("\n"):
-        if line.startswith("!"):
-            insideLag = False
-            continue
-        if line.startswith("lag "):
-            insideLag = True
-            lag_name = line.split(" ")[1]
-            lags_current[lag_name] = []
-            continue
-        if insideLag:
-            if "ports " in line:
-                ports = split_ethernets.findall(line)
-                for port_range in ports:
-                    port_list = expand_port_range(*port_range)
-                    lags_current[lag_name].extend(port_list)
-
-    for lag in configuration_lags:
-        if lag["name"] in lags_current:
-            lags_current_set = set(lags_current[lag["name"]])
-        else:
-            lags_current_set = set()
-
-        lags_configured_set = set(lag["ports"])
-        ports_to_add = list(lags_configured_set - lags_current_set)
-        ports_to_remove = list(lags_current_set - lags_configured_set)
-        ports_actual = list(lags_current_set & lags_configured_set)
-        lags_status[lag["name"]] = {
-            "ports_to_add": ports_to_add,
-            "ports_to_remove": ports_to_remove,
-            "ports_actual": ports_actual,
-        }
-    return lags_status
 
 def expand_port_range(start_port, end_port):
     if end_port == '':
@@ -185,7 +147,6 @@ class FilterModule(object):
     def filters(self):
         return {
             "vlan_membership": vlan_membership,
-            "lag_ports_status": lag_ports_status,
             "running_ports_status": running_ports_status,
             "vlan_ports_diff": vlan_ports_diff,
             "lag_ports_diff": lag_ports_diff,
