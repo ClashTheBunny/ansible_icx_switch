@@ -7,6 +7,10 @@
     set_fact:
       icx_vlan_membership: "{{ icx_portconfig | vlan_membership(icx_lags) }}"
 
+  - name: Find interfaces already on switch
+    set_fact:
+      port_status: "{{ ansible_net_config | find_active_interfaces(icx_portconfig, icx_lags) }}"
+
   - name: Find vlans already on switch
     set_fact:
       vlan_port_status: "{{ ansible_net_config | running_ports_status('vlan') }}"

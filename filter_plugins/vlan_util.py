@@ -2,6 +2,31 @@ import re
 
 split_ethernets = re.compile(r"ethe(?:rnet)? (?:([\d/]+)(?: to ([\d/]+))?)")
 
+def find_active_interfaces(on_device_config, icx_portconfig, icx_lags):
+    """loop through all the lines and find the ones that start with interface"""
+    active_interfaces = []
+    for line in on_device_config.split("\n"):
+        if line.startswith("interface"):
+            interfaces = split_ethernets.findall(line)
+            for port_range in interfaces:
+                port_list = expand_port_range(*port_range)
+                active_interfaces.extend(port_list)
+
+    current_set = set(active_interfaces)
+    configured = [x["port"] for x in icx_portconfig]
+    configured_lags = [item for sublist in icx_lags for item in sublist["ports"]]
+
+    configured_set = set(configured + configured_lags)
+
+    ports_to_add = list(configured_set - current_set)
+    ports_to_remove = list(current_set - configured_set)
+    ports_actual = list(current_set & configured_set)
+    return {
+        "ports_to_add": ports_to_add,
+        "ports_to_remove": ports_to_remove,
+        "ports_actual": ports_actual,
+    }
+
 def running_ports_status(on_device_config, section_name):
     """Converts the interface and lag dicts to a vlan membership dict"""
     section_current = {}
@@ -151,4 +176,5 @@ class FilterModule(object):
             "running_ports_status": running_ports_status,
             "vlan_ports_diff": vlan_ports_diff,
             "lag_ports_diff": lag_ports_diff,
+            "find_active_interfaces": find_active_interfaces,
         }

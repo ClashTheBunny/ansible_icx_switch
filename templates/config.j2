@@ -92,6 +92,11 @@ ntp
 {% endfor %}
 !
 
+{% for port in port_status["ports_to_remove"] %}
+no interface ethernet {{ port }}
+!
+{% endfor %}
+
 {% for item in icx_portconfig %}
 interface ethernet {{ item.port }}
  port-name "{{ item.name }}"
