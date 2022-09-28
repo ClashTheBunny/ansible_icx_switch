@@ -1,6 +1,6 @@
 ---
   - name: Gather facts
-    icx_facts:
+    community.network.icx_facts:
       gather_subset: all
 
   - name: Assemble vlan membership list
@@ -33,36 +33,36 @@
       msg: Unexpected firmware revision on device!
 
   - name: Configure management interface
-    icx_config:
+    community.network.icx_config:
       lines:
         - vlan 1
         - router-interface ve 1
     when: icx_is_l3_switch
 
   - name: Configure management interface
-    icx_l3_interface:
+    community.network.icx_l3_interface:
       name: ve 1
       ipv4: "{{ icx_mgmt_ip }}"
     when: icx_is_l3_switch
 
   - name: Configure users
-    icx_user:
+    community.network.icx_user:
       aggregate: "{{ icx_users }}"
       purge: "yes"
 
   - name: System config
-    icx_system:
+    community.network.icx_system:
       hostname: "{{ icx_my_name }}"
       domain_name: "{{ icx_domain_name }}"
       name_servers:
         - "{{ icx_nameserver }}"
 
   - name: General setup
-    icx_config:
+    community.network.icx_config:
       lines: "{{ icx_general_config }}"
 
   - name: General setup (L3 specific)
-    icx_config:
+    community.network.icx_config:
       lines: "{{ icx_l3_config }}"
     when: icx_is_l3_switch
 
@@ -75,6 +75,6 @@
       msg: "{{ lookup('template', 'config.j2').split('\n') }}"
 
   - name: Render combined vlan/lag/interface config
-    icx_config:
+    community.network.icx_config:
       src: "{{ lookup('template', 'config.j2') }}"
       diff_against: "running"
