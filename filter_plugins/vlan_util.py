@@ -165,7 +165,7 @@ def vlan_membership(interfaces, lags):
 
     addAllMembers(interfaces, "", "port")
     addAllLagMembers(lags, "", "ports")
-    print(vlans)
+
     return vlans
 
 
