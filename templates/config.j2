@@ -12,6 +12,20 @@ vlan 1 name DEFAULT-VLAN by port
 !
 
 {% for item in icx_vlans %}
+{% set ns = namespace(ports_found = false) %}
+{% for tag_type in ["tagged", "untagged"] %}
+{% if tag_type in vlan_port_diff[item.id] %}
+{% if vlan_port_diff[item.id][tag_type]['ports_to_add'] != [] %}
+{% set ns.ports_found = true %}
+{% endif %}
+{% if vlan_port_diff[item.id][tag_type]['ports_actual'] != [] %}
+{% set ns.ports_found = true %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% if not ns.ports_found %}
+no vlan {{ item.id }} name {{ item.name}} by port
+{% else %}
 vlan {{ item.id }} name {{ item.name}} by port
 {% for tag_type in ["tagged", "untagged"] %}
 {% if tag_type in vlan_port_diff[item.id] %}
@@ -25,6 +39,7 @@ vlan {{ item.id }} name {{ item.name}} by port
 {% endfor %}
  spanning-tree 802-1w
  multicast fast-leave-v2
+{% endif %}
 !
 {% endfor %}
 
