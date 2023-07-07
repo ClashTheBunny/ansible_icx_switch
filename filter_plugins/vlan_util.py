@@ -86,12 +86,17 @@ def vlan_ports_diff(current, config):
     status = {}
     print(current, config)
     for section_identifer in set([str(x) for x in config.keys()] + list(current.keys())):
+        print(section_identifer)
         status[int(section_identifer)] = {}
+        if int(section_identifer) not in config:
+            config[int(section_identifer)] = {"tagged": [], "untagged": []}
+        if config[int(section_identifer)] == {}:
+            config[int(section_identifer)] = {"tagged": [], "untagged": []}
         if section_identifer not in current:
             current[section_identifer] = {"tagged": [], "untagged": []}
         if current[section_identifer] == {}:
             current[section_identifer] = {"tagged": [], "untagged": []}
-        for prefix in current[section_identifer].keys():
+        for prefix in set(current[section_identifer].keys()) | set(config[int(section_identifer)].keys()):
             if section_identifer in current:
                 if prefix in current[section_identifer]:
                     current_set = set(current[section_identifer][prefix])
