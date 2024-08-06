@@ -66,13 +66,18 @@
       lines: "{{ icx_l3_config }}"
     when: icx_is_l3_switch
 
-  - name: Render and print running config
-    debug:
-      msg: "{{ ansible_net_config.split('\n') }}"
+  # - name: Render and print running config
+  #   debug:
+  #     msg: "{{ ansible_net_config.split('\n') }}"
+  #
+  # - name: Render and print combined vlan/lag/interface config
+  #   debug:
+  #     msg: "{{ lookup('template', 'config.j2').split('\n') }}"
 
-  - name: Render and print combined vlan/lag/interface config
-    debug:
-      msg: "{{ lookup('template', 'config.j2').split('\n') }}"
+  - name: Diff combined vlan/lag/interface config
+    community.network.icx_config:
+      intended_config: "{{ lookup('template', 'config.j2') }}"
+      diff_against: "intended"
 
   - name: Render combined vlan/lag/interface config
     community.network.icx_config:

@@ -53,7 +53,7 @@ no interface ethernet {{ port }}
 {% for port in item.ports %}
 {% if port in lag_port_diff[item.name]["ports_to_add"] or port == item.primary_port %}
 interface ethernet {{ port }}
- broadcast limit 1000
+ broadcast limit 8192
  unknown-unicast limit
 {% if item.type == 'trust' %}
  raguard trust
@@ -122,9 +122,9 @@ interface ethernet {{ item.port }}
 {% endif %}
 {% else %}
 {% endif %}
- unknown-unicast limit
  stp-protect
- broadcast limit 1000
+ broadcast limit 8192
+ unknown-unicast limit
 {% if item.type == "trust" %}
  raguard trust
  stp-bpdu-guard

@@ -57,7 +57,7 @@ def running_ports_status(on_device_config, section_name):
 
 def lag_ports_diff(current, config):
     status = {}
-    print(current, config)
+    # print(current, config)
     for section_identifer in [x["name"] for x in config]:
         if section_identifer not in current:
             current[section_identifer] = {"ports": []}
@@ -84,9 +84,9 @@ def lag_ports_diff(current, config):
 
 def vlan_ports_diff(current, config):
     status = {}
-    print(current, config)
+    # print(current, config)
     for section_identifer in set([str(x) for x in config.keys()] + list(current.keys())):
-        print(section_identifer)
+        # print(section_identifer)
         status[int(section_identifer)] = {}
         if int(section_identifer) not in config:
             config[int(section_identifer)] = {"tagged": [], "untagged": []}
@@ -109,7 +109,7 @@ def vlan_ports_diff(current, config):
                 configured_set = set(config[int(section_identifer)][prefix])
             else:
                 configured_set = set()
-            print(current_set,configured_set)
+            # print(current_set,configured_set)
             ports_to_add = list(configured_set - current_set)
             ports_to_remove = list(current_set - configured_set)
             ports_actual = list(current_set & configured_set)
